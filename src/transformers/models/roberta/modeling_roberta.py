@@ -68,11 +68,12 @@ class adapter(nn.Module):
         super().__init__()
         bottleneck_size=100
         self.dense_down=nn.Linear(config.hidden_size, bottleneck_size)
-        nn.init.normal_(self.dense_down.weight)
-        nn.init.zeros_(self.dense_down.bias)
+        #nn.init.normal_(self.dense_down.weight)
+        #nn.init.zeros_(self.dense_down.bias)
+
         self.dense_up = nn.Linear(bottleneck_size, config.hidden_size)
-        nn.init.normal_(self.dense_up.weight)
-        nn.init.zeros_(self.dense_up.bias)
+        #nn.init.normal_(self.dense_up.weight)
+        #nn.init.zeros_(self.dense_up.bias)
 
     def forward(self, hidden_states, **kwargs):
         x = self.dense_down(hidden_states)
