@@ -1203,7 +1203,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
         output_type=CausalLMOutputWithCrossAttentions,
         config_class=_CONFIG_FOR_DOC,
     )
-    def combine_knn_and_vocab_probs(knn_p, vocab_p, coeff):
+    def combine_knn_and_vocab_probs(self,knn_p, vocab_p, coeff):
         combine_probs = torch.stack([vocab_p, knn_p], dim=0)
         coeffs = torch.ones_like(combine_probs)
         coeffs[0] = np.log(1 - coeff)
@@ -1225,7 +1225,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
-        return_dict: Optional[bool] = None,
+        return_dict: Optional[bool] = None, **kwargs,
     ) -> Union[Tuple, CausalLMOutputWithCrossAttentions]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -1258,15 +1258,19 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             hidden_states = hidden_states.to(self.lm_head.weight.device)
 
         lm_logits = self.lm_head(hidden_states)
+        fp16=kwargs.get('fp16')
+        lmbda=kwargs.get('labda')
+
 
         query, prob=what_i_need,torch.softmax(lm_logits,-1)
         yhat_knn_prob = self.knnlm.get_knn_log_prob(query)
         # yhat_knn_prob = yhat_knn_prob.permute(1, 0, 2).squeeze(-1)
-        if args.fp16:
+        if fp16:
             yhat_knn_prob = yhat_knn_prob.half()
             prob = prob.half()
 
-        prob = combine_knn_and_vocab_probs(yhat_knn_prob, prob, args.lmbda)
+        prob = self.combine_knn_and_vocab_probs(yhat_knn_prob, prob, lmbda)
+        lm_logits=torch.distributions.utils.probs_to_logits(prob, is_binary=False)
 
 
         loss = None

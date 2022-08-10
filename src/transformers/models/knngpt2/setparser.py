@@ -2,8 +2,6 @@ import argparse
 def get_parser():
     parser = argparse.ArgumentParser(description='test')
 
-    parser.add_argument('--knn-keytype', type=str, default=None,
-                        help='for knnlm WT103 results, use last_ffn_input')
     parser.add_argument('--probe', default=8, type=int,
                         help='for FAISS, the number of lists to query')
     parser.add_argument('--k', default=1024, type=int,

@@ -1197,6 +1197,19 @@ else:
             "load_tf_weights_in_gpt2",
         ]
     )
+    _import_structure["models.knngpt2"].extend(
+        [
+            "GPT2_PRETRAINED_MODEL_ARCHIVE_LIST",
+            "GPT2DoubleHeadsModel",
+            "GPT2ForSequenceClassification",
+            "GPT2ForTokenClassification",
+            "GPT2LMHeadModel",
+            "GPT2LMHeadModel2",
+            "GPT2Model",
+            "GPT2PreTrainedModel",
+            "load_tf_weights_in_gpt2",
+        ]
+    )
     _import_structure["models.gpt_neo"].extend(
         [
             "GPT_NEO_PRETRAINED_MODEL_ARCHIVE_LIST",
@@ -3767,6 +3780,17 @@ if TYPE_CHECKING:
             GPT2ForSequenceClassification,
             GPT2ForTokenClassification,
             GPT2LMHeadModel,
+            GPT2Model,
+            GPT2PreTrainedModel,
+            load_tf_weights_in_gpt2,
+        )
+        from .models.knngpt2 import (
+            GPT2_PRETRAINED_MODEL_ARCHIVE_LIST,
+            GPT2DoubleHeadsModel,
+            GPT2ForSequenceClassification,
+            GPT2ForTokenClassification,
+            GPT2LMHeadModel,
+            GPT2LMHeadModel2,
             GPT2Model,
             GPT2PreTrainedModel,
             load_tf_weights_in_gpt2,

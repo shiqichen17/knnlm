@@ -1,5 +1,4 @@
-from .modeling_gpt2 import GPT2LMHeadModel2
-from transformers import GPT2TokenizerFast
+from transformers import GPT2LMHeadModel2,GPT2TokenizerFast
 import faiss
 from datasets import load_dataset
 import torch
