@@ -1,4 +1,5 @@
-from transformers import GPT2LMHeadModel, GPT2TokenizerFast
+from .modeling_gpt2 import GPT2LMHeadModel2
+from transformers import GPT2TokenizerFast
 import faiss
 from datasets import load_dataset
 import torch
@@ -13,7 +14,7 @@ subset=args.gen_subset
 dstore=args.save_knnlm_dstore
 device = "cuda"
 model_id = "gpt2"
-model = GPT2LMHeadModel.from_pretrained(model_id).to(device)
+model = GPT2LMHeadModel2.from_pretrained(model_id).to(device)
 tokenizer = GPT2TokenizerFast.from_pretrained(model_id)
 device = "cuda"
 subset= load_dataset("wikitext", "wikitext-103-v1", split=str(subset))
@@ -45,7 +46,7 @@ for i in tqdm(range(0, min(encodings.input_ids.size(1), args.dstore_size), strid
     if dstore:
 
     #dstore_keys[begin_loc:end_loc] = outputs.logits[0].view( -1, args.decoder_embed_dim).cpu().numpy().astype(np.float16)
-        dstore_keys[begin_loc:end_loc] = outputs.what_i_needs.view( -1, args.decoder_embed_dim).cpu().numpy().astype(np.float16)
+        dstore_keys[begin_loc:end_loc] = outputs.what_i_need.view( -1, args.decoder_embed_dim).cpu().numpy().astype(np.float16)
 
         dstore_vals[begin_loc:end_loc] = target_ids.view(
             -1, 1).cpu().numpy().astype(np.int16)
