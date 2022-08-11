@@ -60,7 +60,7 @@ def get_parser():
     args = parser.parse_args()
     return args
 
-args=get_parser
+args=get_parser()
 subset=args.gen_subset
 dstore=args.save_knnlm_dstore
 device = "cuda"
