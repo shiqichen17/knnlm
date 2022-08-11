@@ -64,7 +64,7 @@ def get_parser():
     args = parser.parse_args()
     return args
 
-args=get_parser()
+options,args=get_parser()
 subset=args.gen_subset
 dstore=args.save_knnlm_dstore
 knnlm=args.knnlm
@@ -96,7 +96,7 @@ for i in tqdm(range(0, min(encodings.input_ids.size(1), args.dstore_size), strid
 
     with torch.no_grad():
         if knnlm:
-            outputs=model(args,input_ids,labels=target_ids,fp16=args.fp16,labda=args.labda)
+            outputs=model(options,input_ids,labels=target_ids,fp16=args.fp16,labda=args.labda)
         outputs = model(input_ids, labels=target_ids)
         neg_log_likelihood = outputs[0] * trg_len
 
