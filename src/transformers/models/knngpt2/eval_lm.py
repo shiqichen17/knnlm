@@ -61,10 +61,10 @@ def get_parser():
                         help='save keys for the knnlm datastore')
     parser.add_argument('--labda', default=0.25, action='store_true',
                         help='save keys for the knnlm datastore')
-    (options,args) = parser.parse_args()
-    return (options,args)
+    options, args = parser.parse_args()
+    return options, args
 
-(options,args)=get_parser()
+options,args=get_parser()
 subset=args.gen_subset
 dstore=args.save_knnlm_dstore
 knnlm=args.knnlm
