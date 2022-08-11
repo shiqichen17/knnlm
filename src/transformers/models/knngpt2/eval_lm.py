@@ -57,7 +57,10 @@ def get_parser():
                        help='save keys for the knnlm datastore')
     parser.add_argument('--dstore_mmap', default=None, type=str,
                        help='If saving knnlm dstore, save keys and values to this file')
-
+    parser.add_argument('--fp16',default=True, action='store_true',
+                        help='save keys for the knnlm datastore')
+    parser.add_argument('--labda', default=0.25, action='store_true',
+                        help='save keys for the knnlm datastore')
     args = parser.parse_args()
     return args
 

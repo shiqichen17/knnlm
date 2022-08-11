@@ -1140,8 +1140,6 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
 
         # Initialize weights and apply final processing
         self.post_init()
-        args=get_parser()
-        self.knnlm=KNN_Dstore(args)
 
     @add_start_docstrings(PARALLELIZE_DOCSTRING)
     def parallelize(self, device_map=None):
@@ -1235,7 +1233,8 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             are ignored (masked), the loss is only computed for labels in `[0, ..., config.vocab_size]`
         """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-
+        args = get_parser()
+        knnlm = KNN_Dstore(args)
         transformer_outputs = self.transformer(
             input_ids,
             past_key_values=past_key_values,
@@ -1259,12 +1258,12 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             hidden_states = hidden_states.to(self.lm_head.weight.device)
 
         lm_logits = self.lm_head(hidden_states)
-        fp16=kwargs.get('fp16')
-        lmbda=kwargs.get('labda')
+        fp16=args.get('fp16')
+        lmbda=args.get('labda')
 
 
         query, prob=what_i_need,torch.softmax(lm_logits,-1)
-        yhat_knn_prob = self.knnlm.get_knn_log_prob(query)
+        yhat_knn_prob = knnlm.get_knn_log_prob(query)
         # yhat_knn_prob = yhat_knn_prob.permute(1, 0, 2).squeeze(-1)
         if fp16:
             yhat_knn_prob = yhat_knn_prob.half()
