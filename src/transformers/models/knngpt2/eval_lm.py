@@ -82,6 +82,7 @@ class KNN_Dstore(object):
 
     def get_knn_log_prob(self, queries, pad_idx):
         pdb.set_trace()
+        pad_idx=50256
 
         def dist_func(d, k, q, function=None):
             if not function:
@@ -112,12 +113,15 @@ class KNN_Dstore(object):
         qshape = queries.shape  # ([3060, 6, 1024])
         queries = queries.view(-1, qshape[-1])  # ([18360, 1024])
         # tgt = tgt.contiguous().view(-1) #([18360])
-        dists, knns = self.get_knns(queries)  # (2775, 32) queries[tgt!=pad_idx] ([2775, 1024])
+        dists, knns = self.get_knns(queries)  # (18360, 32) queries[tgt!=pad_idx] ([2775, 1024])
         # (T_reducedxB)xK
         dists = torch.from_numpy(dists).cuda()
         start = time.time()
-        dists = dist_func(dists, knns, queries, function=self.sim_func)  # ([2775, 32])
-        probs = torch.log_softmax(dists, dim=-1)  # [2775, 32])
+        dists = dist_func(dists, knns, queries, function=self.sim_func)  # ([18360, 32])
+        probs = torch.log_softmax(dists, dim=-1)  # [18360, 32])
+
+        index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1), tgt[tgt != pad_idx].unsqueeze(-1)).float() #self.vals(103225485, 1)
+
         '''
 
         index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1), tgt[tgt != pad_idx].unsqueeze(-1)).float() #self.vals(103225485, 1)

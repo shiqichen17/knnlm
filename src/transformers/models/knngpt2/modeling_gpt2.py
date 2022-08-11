@@ -438,7 +438,8 @@ class GPT2Block(nn.Module):
         hidden_states = self.ln_2(hidden_states)
 
         global what_i_need
-        if self.id==self.totalnumber:
+        print(self.id,self.totalnumber)
+        if self.id==self.totalnumber-1:
             print('好开心啊')
             what_i_need=hidden_states
         feed_forward_hidden_states = self.mlp(hidden_states)
