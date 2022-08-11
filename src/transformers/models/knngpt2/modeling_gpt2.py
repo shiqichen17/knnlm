@@ -26,7 +26,7 @@ from packaging import version
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from .knnlm import KNN_Dstore
-
+what_i_need=None
 if version.parse(torch.__version__) >= version.parse("1.6"):
     is_amp_available = True
     from torch.cuda.amp import autocast
@@ -1262,8 +1262,10 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
         fp16=kwargs.get('fp16')
         lmbda=kwargs.get('labda')
 
-
-        query, prob=what_i_need,torch.softmax(lm_logits,-1)
+        if what_i_need:
+            query, prob=what_i_need,torch.softmax(lm_logits,-1)
+        else:
+            raise ValueError('没完')
         yhat_knn_prob = knnlm.get_knn_log_prob(query)
         # yhat_knn_prob = yhat_knn_prob.permute(1, 0, 2).squeeze(-1)
         if fp16:
