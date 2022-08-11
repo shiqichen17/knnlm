@@ -26,7 +26,6 @@ from packaging import version
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from .knnlm import KNN_Dstore
-what_i_need=None
 if version.parse(torch.__version__) >= version.parse("1.6"):
     is_amp_available = True
     from torch.cuda.amp import autocast
@@ -440,6 +439,7 @@ class GPT2Block(nn.Module):
 
         global what_i_need
         if self.id==self.totalnumber:
+            print('好开心啊')
             what_i_need=hidden_states
         feed_forward_hidden_states = self.mlp(hidden_states)
         # residual connection
@@ -1251,6 +1251,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
+        global what_i_need
         what_i_need=None
         hidden_states = transformer_outputs[0]
 
