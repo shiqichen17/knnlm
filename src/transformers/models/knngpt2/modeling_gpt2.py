@@ -1211,6 +1211,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
         return curr_prob
     def forward(
         self,
+        knnlm_dstore,
         input_ids: Optional[torch.LongTensor] = None,
         past_key_values: Optional[Tuple[Tuple[torch.Tensor]]] = None,
         attention_mask: Optional[torch.FloatTensor] = None,
@@ -1224,7 +1225,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
-        return_dict: Optional[bool] = None, *args,**kwargs,
+        return_dict: Optional[bool] = None, **kwargs,
     ) -> Union[Tuple, CausalLMOutputWithCrossAttentions]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -1233,7 +1234,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             are ignored (masked), the loss is only computed for labels in `[0, ..., config.vocab_size]`
         """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-        knnlm = KNN_Dstore(args)
+        knnlm = knnlm_dstore,
         transformer_outputs = self.transformer(
             input_ids,
             past_key_values=past_key_values,

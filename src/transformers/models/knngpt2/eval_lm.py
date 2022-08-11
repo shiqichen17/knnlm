@@ -8,6 +8,7 @@ import time
 import scipy
 import argparse
 import sys
+from .knnlm import KNN_Dstore
 
 
 def get_parser():
@@ -61,10 +62,10 @@ def get_parser():
                         help='save keys for the knnlm datastore')
     parser.add_argument('--labda', default=0.25, action='store_true',
                         help='save keys for the knnlm datastore')
-    options, args = parser.parse_args()
-    return options, args
+    args = parser.parse_args()
+    return  args
 
-options,args=get_parser()
+args=get_parser()
 subset=args.gen_subset
 dstore=args.save_knnlm_dstore
 knnlm=args.knnlm
@@ -96,7 +97,9 @@ for i in tqdm(range(0, min(encodings.input_ids.size(1), args.dstore_size), strid
 
     with torch.no_grad():
         if knnlm:
-            outputs=model(options,input_ids,labels=target_ids,fp16=args.fp16,labda=args.labda)
+            knnlm_dstore=KNN_Dstore(args)
+            outputs=model(input_ids,knnlm_dstore,
+                          fp16=args.fp16,labda=args.labda)
         outputs = model(input_ids, labels=target_ids)
         neg_log_likelihood = outputs[0] * trg_len
 
