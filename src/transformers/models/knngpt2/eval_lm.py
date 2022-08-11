@@ -160,7 +160,7 @@ def get_parser():
                         help='if true, datastore items are saved in fp16 and int16')
     parser.add_argument('--move_dstore_to-mem', default=False, action='store_true',
                         help='move the keys and values for knn to memory')
-    parser.add_argument('--decoder_embed_dim', default=1024, action='store_true',
+    parser.add_argument('--decoder_embed_dim', default=768, action='store_true',
                         help='move the keys and values for knn to memory')
     parser.add_argument('--gen_subset', default='test', metavar='SPLIT',
                        help='data subset to generate (train, valid, test)')
@@ -222,9 +222,9 @@ for i in tqdm(range(0, min(encodings.input_ids.size(1), args.dstore_size), strid
     with torch.no_grad():
         if knnlm:
             knnlm_dstore=KNN_Dstore(args)
-            outputs=model(input_ids,knnlm_dstore,
-                          fp16=args.fp16,labda=args.labda)
-        outputs = model(input_ids, labels=target_ids)
+            outputs=model(input_ids,knnlm_dstore,fp16=args.fp16,labda=args.labda)
+        else:
+            outputs = model(input_ids, labels=target_ids)
         neg_log_likelihood = outputs[0] * trg_len
 
     nlls.append(neg_log_likelihood)
