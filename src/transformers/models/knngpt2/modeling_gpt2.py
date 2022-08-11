@@ -26,7 +26,7 @@ from packaging import version
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from .knnlm import KNN_Dstore
-from .eval_lm import get_parser
+
 if version.parse(torch.__version__) >= version.parse("1.6"):
     is_amp_available = True
     from torch.cuda.amp import autocast
@@ -1224,7 +1224,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
-        return_dict: Optional[bool] = None, **kwargs,
+        return_dict: Optional[bool] = None, *args, **kwargs,
     ) -> Union[Tuple, CausalLMOutputWithCrossAttentions]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -1233,7 +1233,6 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             are ignored (masked), the loss is only computed for labels in `[0, ..., config.vocab_size]`
         """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-        args = get_parser()
         knnlm = KNN_Dstore(args)
         transformer_outputs = self.transformer(
             input_ids,
@@ -1258,8 +1257,8 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             hidden_states = hidden_states.to(self.lm_head.weight.device)
 
         lm_logits = self.lm_head(hidden_states)
-        fp16=args.get('fp16')
-        lmbda=args.get('labda')
+        fp16=kwargs.get('fp16')
+        lmbda=kwargs.get('labda')
 
 
         query, prob=what_i_need,torch.softmax(lm_logits,-1)

@@ -15,7 +15,7 @@ def get_parser():
 
     parser.add_argument('--probe', default=8, type=int,
                         help='for FAISS, the number of lists to query')
-    parser.add_argument('--k', default=1024, type=int,
+    parser.add_argument('--k', default=32, type=int,
                         help='number of nearest neighbors to retrieve')
     parser.add_argument('--dstore_size', default=103227021, type=int,
                         help='number of items in the knnlm datastore')
@@ -35,7 +35,7 @@ def get_parser():
                         help='if true, datastore items are saved in fp16 and int16')
     parser.add_argument('--move_dstore_to-mem', default=False, action='store_true',
                         help='move the keys and values for knn to memory')
-    parser.add_argument('--decoder_embed_dim', default=False, action='store_true',
+    parser.add_argument('--decoder_embed_dim', default=1024, action='store_true',
                         help='move the keys and values for knn to memory')
     parser.add_argument('--gen_subset', default='test', metavar='SPLIT',
                        help='data subset to generate (train, valid, test)')
@@ -67,8 +67,10 @@ def get_parser():
 args=get_parser()
 subset=args.gen_subset
 dstore=args.save_knnlm_dstore
+knnlm=args.knnlm
 device = "cuda"
 model_id = "gpt2"
+#model = GPT2LMHeadModel2.from_pretrained(model_id).to(device)
 model = GPT2LMHeadModel2.from_pretrained(model_id).to(device)
 tokenizer = GPT2TokenizerFast.from_pretrained(model_id)
 device = "cuda"
@@ -93,6 +95,8 @@ for i in tqdm(range(0, min(encodings.input_ids.size(1), args.dstore_size), strid
     target_ids[:, :-trg_len] = -100
 
     with torch.no_grad():
+        if knnlm:
+            outputs=model(input_ids,labels=target_ids,*args,p16=args.fp16,labda=args.labda)
         outputs = model(input_ids, labels=target_ids)
         neg_log_likelihood = outputs[0] * trg_len
 
