@@ -1251,6 +1251,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
+        what_i_need=None
         hidden_states = transformer_outputs[0]
 
         # Set device for model parallelism
