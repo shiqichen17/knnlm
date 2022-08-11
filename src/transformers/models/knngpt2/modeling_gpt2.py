@@ -26,7 +26,7 @@ from packaging import version
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from .knnlm import KNN_Dstore
-
+from .eval_lm import get_parser
 if version.parse(torch.__version__) >= version.parse("1.6"):
     is_amp_available = True
     from torch.cuda.amp import autocast
@@ -1140,7 +1140,8 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
 
         # Initialize weights and apply final processing
         self.post_init()
-        self.knnlm=KNN_Dstore()
+        args=get_parser()
+        self.knnlm=KNN_Dstore(args)
 
     @add_start_docstrings(PARALLELIZE_DOCSTRING)
     def parallelize(self, device_map=None):
