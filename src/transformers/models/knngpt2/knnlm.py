@@ -2,9 +2,7 @@ import torch
 import faiss
 import math
 import numpy as np
-from fairseq import utils
 import time
-from fairseq.data import Dictionary
 
 class KNN_Dstore(object):
     def __init__(self, args):
@@ -103,7 +101,7 @@ class KNN_Dstore(object):
         dists = torch.from_numpy(dists).cuda()
         start = time.time()
         dists = dist_func(dists, knns, queries, function=self.sim_func) #([2775, 32])
-        probs = utils.log_softmax(dists, dim=-1) #[2775, 32])
+        probs = torch.log_softmax(dists, dim=-1) #[2775, 32])
         '''
 
         index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1), tgt[tgt != pad_idx].unsqueeze(-1)).float() #self.vals(103225485, 1)
