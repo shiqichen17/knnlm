@@ -492,7 +492,7 @@ class CausalLMOutputWithCrossAttentions2(ModelOutput):
 
     loss: Optional[torch.FloatTensor] = None
     logits: torch.FloatTensor = None
-    what_i_need:torch.FlatTensor=None
+    what_i_need:torch.FloatTensor=None
     past_key_values: Optional[Tuple[Tuple[torch.FloatTensor]]] = None
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
