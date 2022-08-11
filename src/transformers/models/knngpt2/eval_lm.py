@@ -96,7 +96,7 @@ for i in tqdm(range(0, min(encodings.input_ids.size(1), args.dstore_size), strid
 
     with torch.no_grad():
         if knnlm:
-            outputs=model(input_ids,labels=target_ids,args,fp16=args.fp16,labda=args.labda)
+            outputs=model(args,input_ids,labels=target_ids,fp16=args.fp16,labda=args.labda)
         outputs = model(input_ids, labels=target_ids)
         neg_log_likelihood = outputs[0] * trg_len
 
