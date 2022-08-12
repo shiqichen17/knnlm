@@ -120,6 +120,14 @@ class KNN_Dstore(object):
         dists = dist_func(dists, knns, queries, function=self.sim_func)  # ([18360, 32])
         probs = torch.log_softmax(dists, dim=-1)  # [18360, 32])
 
+        vocab_size=50257
+        a=np.array([-10000 for _ in range(vocab_size)] for _ in range(queries.shape[0]))
+        for i in range(queries.shape[0]):
+            for j in range(probs.size()[1]):
+                a[i][knns[i][j]]=probs[i][j]
+        probs=torch.form_numpy(a)
+
+
         index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1), tgt[tgt != pad_idx].unsqueeze(-1)).float() #self.vals(103225485, 1)
 
         '''
@@ -130,7 +138,7 @@ class KNN_Dstore(object):
 
 
         # (T_reducedxB)
-        yhat_knn_prob = torch.logsumexp(probs, dim=-1).clone() #([2775])
+        yhat_knn_prob = torch.logsumexp(probs + index_mask, dim=-1).clone() #([2775])
         full_yhat_knn_prob = torch.full([qshape[0]*qshape[1]], -10000).cuda() #([18360])
         full_yhat_knn_prob[tgt != pad_idx] = yhat_knn_prob
         '''

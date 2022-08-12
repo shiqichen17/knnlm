@@ -440,7 +440,7 @@ class GPT2Block(nn.Module):
         global what_i_need
         print(self.id,self.totalnumber)
         if self.id==self.totalnumber-1:
-            print('好开心啊')
+            print('好开心啊',what_i_need)
             what_i_need=hidden_states
         feed_forward_hidden_states = self.mlp(hidden_states)
         # residual connection
