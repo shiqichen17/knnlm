@@ -452,7 +452,8 @@ class GPT2Block(nn.Module):
             outputs = (hidden_states,) + outputs[1:]
 
 
-
+        if self.id==self.totalnumber-1:
+            outputs=outputs,what_i_need
         return outputs  # hidden_states, present, (attentions, cross_attentions)
 
 
@@ -935,6 +936,7 @@ class GPT2Model(GPT2PreTrainedModel):
                         hidden_states = hidden_states.to("cuda:" + str(k + 1))
 
         hidden_states = self.ln_f(hidden_states)
+        what_i_need=self.h[-1]
 
         hidden_states = hidden_states.view(output_shape)
         # Add last hidden state
@@ -954,6 +956,7 @@ class GPT2Model(GPT2PreTrainedModel):
             hidden_states=all_hidden_states,
             attentions=all_self_attentions,
             cross_attentions=all_cross_attentions,
+            what_i_need=what_i_need
         )
 
 
@@ -1081,6 +1084,7 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
             return_dict=return_dict,
         )
         hidden_states = transformer_outputs[0]
+        what_i_need=transformer_outputs[-1]
 
         # Set device for model parallelism
         if self.model_parallel:
@@ -1141,6 +1145,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
 
         # Initialize weights and apply final processing
         self.post_init()
+        self.config=config
 
     @add_start_docstrings(PARALLELIZE_DOCSTRING)
     def parallelize(self, device_map=None):
@@ -1269,7 +1274,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             query, prob=what_i_need,torch.softmax(lm_logits,-1)
         else:
             raise ValueError('没完')
-        yhat_knn_prob = knnlm.get_knn_log_prob(query)
+        yhat_knn_prob = knnlm.get_knn_log_prob(query,self.config)
         # yhat_knn_prob = yhat_knn_prob.permute(1, 0, 2).squeeze(-1)
         if fp16:
             yhat_knn_prob = yhat_knn_prob.half()
