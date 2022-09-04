@@ -4,6 +4,7 @@ import math
 import numpy as np
 import time
 import pdb
+from torch_scatter import scatter_logsumexp
 
 class KNN_Dstore(object):
     def __init__(self, args):
@@ -15,6 +16,7 @@ class KNN_Dstore(object):
         self.sim_func = args.knn_sim_func
         self.dstore_fp16 = args.dstore_fp16
         self.index = self.setup_faiss(args)
+        self.vocab_size=args.vocab_size
 
     def setup_faiss(self, args):
         if not args.dstore_filename:
@@ -26,11 +28,10 @@ class KNN_Dstore(object):
         index.nprobe = args.probe
 
         if args.dstore_fp16:
-            print('Keys are fp16 and vals are int16')
-
+            print('Keys are fp16 and vals are int')
             self.keys = np.memmap(args.dstore_filename + '_keys.npy', dtype=np.float16, mode='r',
                                   shape=(self.dstore_size, self.dimension))
-            self.vals = np.memmap(args.dstore_filename + '_vals.npy', dtype=np.int16, mode='r',
+            self.vals = np.memmap(args.dstore_filename + '_vals.npy', dtype=np.int, mode='r',
                                   shape=(self.dstore_size, 1))
         else:
             print('Keys are fp32 and vals are int64')
@@ -58,22 +59,22 @@ class KNN_Dstore(object):
             del self.vals
             self.vals_from_memmap = np.memmap(args.dstore_filename + '_vals.npy', dtype=np.int, mode='r',
                                               shape=(self.dstore_size, 1))
-            self.vals = np.zeros((self.dstore_size, 1), dtype=np.int16 if args.dstore_fp16 else np.int)
+            self.vals = np.zeros((self.dstore_size, 1), dtype=np.int if args.dstore_fp16 else np.int)
             self.vals = self.vals_from_memmap[:]
-            self.vals = self.vals.astype(np.int16 if args.dstore_fp16 else np.int)
+            self.vals = self.vals.astype(np.int if args.dstore_fp16 else np.int)
             print('Loading to memory took {} s'.format(time.time() - start))
 
         return index
 
     def get_knns(self, queries):
         start = time.time()
+        #dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k)
         dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k)
         return dists, knns
 
-    def get_knn_log_prob(self, queries, config):
-        pdb.set_trace()
+    def get_knn_log_prob(self, queries,tok):
         
-
+        
         def dist_func(d, k, q, function=None):
             if not function:
                 # Default behavior for L2 metric is to recompute distances.
@@ -100,17 +101,21 @@ class KNN_Dstore(object):
 
         # queries  are TxBxC
         # reshape: (TxB)xC
-        qshape = queries.shape  # ([3060, 6, 1024])
-        queries = queries.view(-1, qshape[-1])  # ([18360, 1024])
+        #pdb.set_trace()
+        qshape = queries.shape  # ([3060, 6, 768])
+        queries = queries.view(-1, qshape[-1])  # ([18360, 768])
         # tgt = tgt.contiguous().view(-1) #([18360])
-        dists, knns = self.get_knns(queries)  # (18360, 32) queries[tgt!=pad_idx] ([2775, 1024])
+        dists, knns = self.get_knns(queries)  # torch.Size([1, 32]) queries[tgt!=pad_idx] ([2775, 1024])
+        #pdb.set_trace()
         # (T_reducedxB)xK
         dists = torch.from_numpy(dists).cuda()
         start = time.time()
-        dists = dist_func(dists, knns, queries, function=self.sim_func)  # ([18360, 32])
-        probs = torch.log_softmax(dists, dim=-1)  # [18360, 32])
+        dists = dist_func(dists, knns, queries, function=self.sim_func)  # torch.Size([1, 32])
+        dists=torch.tensor(dists, dtype=torch.float32)
+        probs = torch.log_softmax(dists, dim=-1).cuda()  # torch.Size([1, 32])
 
-        vocab_size=config.vocab_size #50257
+        #vocab_size=.vocab_size 
+        vocab_size=self.vocab_size
         '''
         a=np.array([-10000 for _ in range(vocab_size)] for _ in range(queries.shape[0]))
         for i in range(queries.shape[0]):
@@ -118,9 +123,16 @@ class KNN_Dstore(object):
                 a[i][knns[i][j]]=probs[i][j]
         probs=torch.form_numpy(a)
         '''
-        a=torch.zeros((queries.shape[0],vocab_size)).fill_(-10000)
-        a=a.scatter(1,knns,probs)
+        a=torch.zeros((queries.shape[0],vocab_size)).fill_(-10000).cuda() #torch.Size([1, 50257])
+        knns=torch.tensor(knns).cuda()
+        pos=torch.tensor(self.vals).cuda()[knns].squeeze(-1)
+        #pdb.set_trace()
+        #a=a.scatter(1,pos,probs)
+        a=torch.log(torch.zeros((queries.shape[0],vocab_size)).cuda().scatter(1,pos,torch.exp(probs),reduce='add'))
+        #a=scatter_logsumexp(src=probs,index=pos,dim=1,out=a)
+        #a = scatter_logsumexp(probs,pos,1,torch.zeros((queries.shape[0],vocab_size)).fill_(-10000).cuda())
 
+        #pdb.set_trace()
 
         #index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1), tgt[tgt != pad_idx].unsqueeze(-1)).float() #self.vals(103225485, 1)
 

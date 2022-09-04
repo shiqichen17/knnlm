@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """PyTorch OpenAI GPT-2 model."""
-
+import pdb
 import math
 import os
 from dataclasses import dataclass
@@ -52,7 +52,11 @@ from ...utils import (
 )
 from ...utils.model_parallel_utils import assert_device_map, get_device_map
 from .configuration_gpt2 import GPT2Config
-
+import sys
+sys.path.insert(2,"./")
+from transformers.models.knngpt2.knnlm import KNN_Dstore
+from transformers.models.knngpt2.setparser import get_parser
+#os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 logger = logging.get_logger(__name__)
 
@@ -436,12 +440,11 @@ class GPT2Block(nn.Module):
 
         residual = hidden_states
         hidden_states = self.ln_2(hidden_states)
+        
 
-        global what_i_need
-        print(self.id,self.totalnumber)
         if self.id==self.totalnumber-1:
-            print('好开心啊',what_i_need)
             what_i_need=hidden_states
+        
         feed_forward_hidden_states = self.mlp(hidden_states)
         # residual connection
         hidden_states = residual + feed_forward_hidden_states
@@ -921,6 +924,7 @@ class GPT2Model(GPT2PreTrainedModel):
                 )
 
             hidden_states = outputs[0]
+            
             if use_cache is True:
                 presents = presents + (outputs[1],)
 
@@ -934,9 +938,12 @@ class GPT2Model(GPT2PreTrainedModel):
                 for k, v in self.device_map.items():
                     if i == v[-1] and "cuda:" + str(k) != self.last_device:
                         hidden_states = hidden_states.to("cuda:" + str(k + 1))
-
+            if i==len(self.h)-1:
+                what_i_need=outputs[-1]
+        if not torch.is_tensor(hidden_states):
+            hidden_states=hidden_states[0]
         hidden_states = self.ln_f(hidden_states)
-        what_i_need=self.h[-1]
+        
 
         hidden_states = hidden_states.view(output_shape)
         # Add last hidden state
@@ -1067,6 +1074,7 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
             are ignored (masked), the loss is only computed for labels in `[0, ..., config.vocab_size]`
         """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        #pdb.set_trace()
 
         transformer_outputs = self.transformer(
             input_ids,
@@ -1085,6 +1093,8 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
         )
         hidden_states = transformer_outputs[0]
         what_i_need=transformer_outputs[-1]
+        
+
 
         # Set device for model parallelism
         if self.model_parallel:
@@ -1092,6 +1102,9 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
             hidden_states = hidden_states.to(self.lm_head.weight.device)
 
         lm_logits = self.lm_head(hidden_states)
+        lm_logits=torch.log_softmax(lm_logits,-1).cuda()
+        
+    
 
         loss = None
         if labels is not None:
@@ -1109,7 +1122,7 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
         if not return_dict:
             output = (lm_logits,) + transformer_outputs[1:]
             return ((loss,) + output) if loss is not None else output
-
+        
         return CausalLMOutputWithCrossAttentions2(
             loss=loss,
             logits=lm_logits,
@@ -1138,6 +1151,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
         super().__init__(config)
         self.transformer = GPT2Model(config)
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        
 
         # Model parallel
         self.model_parallel = False
@@ -1209,10 +1223,15 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
         config_class=_CONFIG_FOR_DOC,
     )
     def combine_knn_and_vocab_probs(self,knn_p, vocab_p, coeff):
-        combine_probs = torch.stack([vocab_p, knn_p], dim=0)
-        coeffs = torch.ones_like(combine_probs)
+        #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        combine_probs = torch.stack([vocab_p, knn_p], dim=0).cuda()
+        #combine_probs=combine_probs.to(device)
+        #coeff=coeff.to(device)
+        coeffs = torch.ones_like(combine_probs).cuda()
         coeffs[0] = np.log(1 - coeff)
         coeffs[1] = np.log(coeff)
+        #coeffs=coeffs.to(device)
+        
         curr_prob = torch.logsumexp(combine_probs + coeffs, dim=0)
         return curr_prob
     def forward(
@@ -1231,7 +1250,6 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        knnlm_dstore:Optional[classmethod] = None,
         **kwargs,
     ) -> Union[Tuple, CausalLMOutputWithCrossAttentions]:
         r"""
@@ -1241,7 +1259,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             are ignored (masked), the loss is only computed for labels in `[0, ..., config.vocab_size]`
         """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-        knnlm = knnlm_dstore,
+        #pdb.set_trace()
         transformer_outputs = self.transformer(
             input_ids,
             past_key_values=past_key_values,
@@ -1257,9 +1275,14 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
-        global what_i_need
-        what_i_need=None
+
+        knnlm=kwargs.get('knnlm')
+        tok=kwargs.get('tok')
+
+        
         hidden_states = transformer_outputs[0]
+        what_i_need=transformer_outputs[-1]
+        
 
         # Set device for model parallelism
         if self.model_parallel:
@@ -1269,20 +1292,23 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
         lm_logits = self.lm_head(hidden_states)
         fp16=kwargs.get('fp16')
         lmbda=kwargs.get('labda')
-
-        if what_i_need:
-            query, prob=what_i_need,torch.softmax(lm_logits,-1)
+        if what_i_need is not None:
+            query, prob=what_i_need[0],torch.log_softmax(lm_logits,-1).cuda()
         else:
             raise ValueError('没完')
-        yhat_knn_prob = knnlm.get_knn_log_prob(query,self.config)
+        #yhat_knn_prob = KNN_Dstore.get_knn_log_prob(query)
+        yhat_knn_prob = knnlm.get_knn_log_prob(query,tok).cuda()
         # yhat_knn_prob = yhat_knn_prob.permute(1, 0, 2).squeeze(-1)
         if fp16:
             yhat_knn_prob = yhat_knn_prob.half()
-            prob = prob.half()
-
-        prob = self.combine_knn_and_vocab_probs(yhat_knn_prob, prob, lmbda)
-        lm_logits=torch.distributions.utils.probs_to_logits(prob, is_binary=False)
-
+            prob = prob.half().cuda()
+        #pdb.set_trace()
+        prob=prob[0]
+        prob = self.combine_knn_and_vocab_probs(yhat_knn_prob, prob, lmbda).cuda()
+        
+        #lm_logits=torch.distributions.utils.probs_to_logits(prob, is_binary=False)
+        lm_logits=prob.unsqueeze(0)
+        
 
         loss = None
         if labels is not None:
@@ -1292,14 +1318,12 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             # Flatten the tokens
             loss_fct = CrossEntropyLoss()
             loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
-
-
-
-
+        
 
         if not return_dict:
             output = (lm_logits,) + transformer_outputs[1:]
             return ((loss,) + output) if loss is not None else output
+        #pdb.set_trace()
 
         return CausalLMOutputWithCrossAttentions2(
             loss=loss,
@@ -1310,6 +1334,7 @@ class GPT2LMHeadModel2(GPT2PreTrainedModel):
             attentions=transformer_outputs.attentions,
             cross_attentions=transformer_outputs.cross_attentions,
         )
+        
 
     @staticmethod
     def _reorder_cache(past: Tuple[Tuple[torch.Tensor]], beam_idx: torch.Tensor) -> Tuple[Tuple[torch.Tensor]]:
@@ -1498,6 +1523,7 @@ class GPT2DoubleHeadsModel(GPT2PreTrainedModel):
         lm_loss = None
         if labels is not None:
             shift_logits = lm_logits[..., :-1, :].contiguous()
+            shift_logits = torch.tensor(shift_logits, dtype=torch.float32)
             shift_labels = labels[..., 1:].contiguous()
             loss_fct = CrossEntropyLoss()
             lm_loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))

@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../../.."
+		},
+		{
+			"path": "../../../../../knnlm-master"
+		},
+		{
+			"path": "../../../../../KSTER-main"
+		}
+	],
+	"settings": {}
+}

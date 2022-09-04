@@ -3,13 +3,13 @@ import os
 import numpy as np
 import faiss
 import time
-
+import pdb
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dstore_mmap', type=str, help='memmap where keys and vals are stored')
 parser.add_argument('--dstore_size', type=int, help='number of items saved in the datastore memmap')
-parser.add_argument('--dimension', type=int, default=1024, help='Size of each key')
-parser.add_argument('--dstore_fp16', default=False, action='store_true')
+parser.add_argument('--dimension', type=int, default=768, help='Size of each key')
+parser.add_argument('--dstore_fp16', default=True, action='store_true')
 parser.add_argument('--seed', type=int, default=1, help='random seed for sampling the subset of vectors to train the cache')
 parser.add_argument('--ncentroids', type=int, default=4096, help='number of centroids faiss should learn')
 parser.add_argument('--code_size', type=int, default=64, help='size of quantized vectors')
@@ -21,9 +21,9 @@ parser.add_argument('--starting_point', type=int, help='index to start adding ke
 args = parser.parse_args()
 
 print(args)
-
+#pdb.set_trace()
 if args.dstore_fp16:
-    keys = np.memmap(args.dstore_mmap+'_keys.npy', dtype=np.float16, mode='r', shape=(args.dstore_size, args.dimension))
+    keys = np.memmap(args.dstore_mmap+'_keys.npy', dtype=np.float16, mode='r+', shape=(args.dstore_size, args.dimension))
     vals = np.memmap(args.dstore_mmap+'_vals.npy', dtype=np.int16, mode='r', shape=(args.dstore_size, 1))
 else:
     keys = np.memmap(args.dstore_mmap+'_keys.npy', dtype=np.float32, mode='r', shape=(args.dstore_size, args.dimension))
